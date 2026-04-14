@@ -57,6 +57,7 @@ $env:ANTHROPIC_API_KEY="your_api_key_here"
 ```
 
 Get your API key from: https://console.anthropic.com
+for free alternative: https://console.groq.com
 
 ### 5. Run the server
 
