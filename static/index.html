@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI PPT Generator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f7f5;
+    --card: #ffffff;
+    --border: #e2e2de;
+    --text: #1a1a1a;
+    --muted: #6b6b68;
+    --accent: #0f6e56;
+    --accent-light: #e1f5ee;
+    --danger: #a32d2d;
+    --danger-bg: #fcebeb;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 4rem;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+
+  header h1 {
+    font-size: 2rem;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.4rem;
+  }
+
+  header p { color: var(--muted); font-size: 1rem; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    width: 100%;
+    max-width: 640px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+
+  .field { margin-bottom: 1.25rem; }
+  label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--muted); }
+
+  input[type="text"], textarea, select {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--card);
+    outline: none;
+    transition: border-color 0.15s;
+    -webkit-appearance: none;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(15,110,86,0.1);
+  }
+
+  textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border: none; border-radius: var(--radius-sm); padding: 12px 20px;
+    font-size: 15px; font-family: inherit; cursor: pointer;
+    font-weight: 500; transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-primary { background: var(--accent); color: #fff; width: 100%; }
+  .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+
+  .btn-download {
+    background: var(--accent); color: #fff;
+    padding: 10px 22px; font-size: 14px;
+  }
+  .btn-download:hover { opacity: 0.88; }
+
+  .btn-new {
+    background: transparent; border: 1px solid var(--border); color: var(--text);
+    padding: 10px 22px; font-size: 14px;
+  }
+  .btn-new:hover { background: var(--bg); }
+
+  /* Progress */
+  .progress-wrap { margin-top: 1.5rem; display: none; }
+  .progress-bar { height: 4px; background: var(--border); border-radius: 99px; overflow: hidden; margin-bottom: 0.75rem; }
+  .progress-fill { height: 100%; background: var(--accent); width: 0; transition: width 0.5s ease; border-radius: 99px; }
+  .progress-msg { font-size: 13px; color: var(--muted); text-align: center; }
+
+  /* Results */
+  .result-wrap { margin-top: 1.5rem; display: none; }
+  .result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px; }
+  .result-title { font-size: 15px; font-weight: 500; }
+  .badge { font-size: 12px; padding: 3px 10px; border-radius: 99px; background: var(--accent-light); color: var(--accent); font-weight: 500; }
+
+  .slides-list { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; padding-right: 4px; }
+
+  .slide-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    background: var(--bg);
+  }
+
+  .slide-card-title { font-size: 13px; font-weight: 500; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+  .slide-num { background: var(--accent); color: #fff; font-size: 10px; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .slide-card ul { list-style: disc; padding-left: 1.2rem; }
+  .slide-card li { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+  .actions { display: flex; gap: 10px; margin-top: 1rem; }
+
+  /* Error */
+  .error-box { display: none; margin-top: 1rem; padding: 10px 14px; background: var(--danger-bg); color: var(--danger); border-radius: var(--radius-sm); font-size: 13px; }
+
+  @media (max-width: 500px) {
+    .row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>AI PPT Generator</h1>
+  <p>Describe your topic — We will build your presentation.</p>
+</header>
+
+<div class="card">
+  <div id="form-section">
+    <div class="field">
+      <label>Topic / Title *</label>
+      <input type="text" id="topic" placeholder="e.g. Introduction to Machine Learning" />
+    </div>
+
+    <div class="field">
+      <label>Additional details (optional)</label>
+      <textarea id="description" placeholder="Audience, key points, focus areas, tone…"></textarea>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label>Number of slides</label>
+        <select id="slideCount">
+          <option value="5">5 slides</option>
+          <option value="7" selected>7 slides</option>
+          <option value="10">10 slides</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Theme</label>
+        <select id="theme">
+          <option value="professional">Professional (navy)</option>
+          <option value="minimal">Minimal (gray)</option>
+          <option value="vibrant">Vibrant (teal)</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="generateBtn" onclick="generate()">Generate Presentation →</button>
+    <div class="error-box" id="errorBox"></div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-msg" id="progressMsg">Asking Claude to structure your slides…</div>
+  </div>
+
+  <!-- Results -->
+  <div class="result-wrap" id="resultWrap">
+    <div class="result-header">
+      <span class="result-title" id="resultTitle"></span>
+      <span class="badge" id="slideCountBadge"></span>
+    </div>
+    <div class="slides-list" id="slidesList"></div>
+    <div class="actions">
+      <button class="btn btn-download" id="downloadBtn">⬇ Download .pptx</button>
+      <button class="btn btn-new" onclick="resetForm()">New presentation</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let downloadUrl = '';
+
+  async function generate() {
+    const topic = document.getElementById('topic').value.trim();
+    if (!topic) { showError('Please enter a topic.'); return; }
+
+    const btn = document.getElementById('generateBtn');
+    btn.disabled = true;
+    btn.textContent = 'Generating…';
+    hideError();
+    showProgress(10, 'Asking Claude to structure your slides…');
+    document.getElementById('resultWrap').style.display = 'none';
+
+    const body = {
+      topic,
+      description: document.getElementById('description').value.trim(),
+      slide_count: parseInt(document.getElementById('slideCount').value),
+      theme: document.getElementById('theme').value
+    };
+
+    // Animate progress
+    let pct = 10;
+    const msgs = [
+      [30, 'Generating slide content with Claude…'],
+      [60, 'Building PowerPoint file…'],
+      [85, 'Finalising your presentation…']
+    ];
+    let mi = 0;
+    const interval = setInterval(() => {
+      if (mi < msgs.length) {
+        showProgress(msgs[mi][0], msgs[mi][1]);
+        mi++;
+      }
+    }, 1800);
+
+    try {
+      const res = await fetch('/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      clearInterval(interval);
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Something went wrong');
+      }
+
+      const data = await res.json();
+      showProgress(100, 'Done!');
+      setTimeout(() => {
+        document.getElementById('progressWrap').style.display = 'none';
+        showResults(data, topic);
+        btn.disabled = false;
+        btn.textContent = 'Generate Presentation →';
+      }, 500);
+
+    } catch (e) {
+      clearInterval(interval);
+      document.getElementById('progressWrap').style.display = 'none';
+      showError(e.message);
+      btn.disabled = false;
+      btn.textContent = 'Generate Presentation →';
+    }
+  }
+
+  function showProgress(pct, msg) {
+    document.getElementById('progressWrap').style.display = 'block';
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressMsg').textContent = msg;
+  }
+
+  function showResults(data, topic) {
+    downloadUrl = data.download_url;
+    document.getElementById('resultTitle').textContent = topic;
+    document.getElementById('slideCountBadge').textContent = data.slides.length + ' slides';
+
+    const list = document.getElementById('slidesList');
+    list.innerHTML = '';
+    data.slides.forEach(s => {
+      const card = document.createElement('div');
+      card.className = 'slide-card';
+      const bullets = (s.bullets || []).map(b => `<li>${b}</li>`).join('');
+      card.innerHTML = `
+        <div class="slide-card-title">
+          <span class="slide-num">${s.slide}</span>
+          ${s.title}
+        </div>
+        <ul>${bullets}</ul>`;
+      list.appendChild(card);
+    });
+
+    document.getElementById('downloadBtn').onclick = () => {
+      window.location.href = downloadUrl;
+    };
+
+    document.getElementById('resultWrap').style.display = 'block';
+  }
+
+  function resetForm() {
+    document.getElementById('resultWrap').style.display = 'none';
+    document.getElementById('topic').value = '';
+    document.getElementById('description').value = '';
+  }
+
+  function showError(msg) {
+    const box = document.getElementById('errorBox');
+    box.textContent = '!!! ' + msg;
+    box.style.display = 'block';
+  }
+
+  function hideError() {
+    document.getElementById('errorBox').style.display = 'none';
+  }
+</script>
+</body>
+</html>
